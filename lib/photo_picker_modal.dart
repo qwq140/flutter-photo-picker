@@ -4,6 +4,26 @@ import 'package:flutter_photo_select_example/permission_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_manager/photo_manager.dart';
 
+void showPhotoPickerModal(BuildContext context, {bool multiSelect = false, required Function(List<XFile>) onSelectedImages}) {
+  final mediaQuery = MediaQuery.of(context);
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) {
+      return DraggableScrollableSheet(
+        initialChildSize: 1,
+        builder: (context, scrollController) {
+          return PhotoPickerModal(
+            mediaQuery: mediaQuery,
+            multiSelect: multiSelect,
+            onSelectImages: onSelectedImages,
+          );
+        },
+      );
+    },
+  );
+}
+
 class PhotoPickerModal extends StatefulWidget {
   final MediaQueryData mediaQuery;
   final bool multiSelect;
@@ -11,7 +31,7 @@ class PhotoPickerModal extends StatefulWidget {
 
   const PhotoPickerModal(
       {super.key,
-      this.multiSelect = false,
+      required this.multiSelect,
       required this.onSelectImages,
       required this.mediaQuery});
 

@@ -37,25 +37,12 @@ class _MyHomePageState extends State<MyHomePage> {
   XFile? selectImage;
 
   void _showModal(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 1,
-          builder: (context, scrollController) {
-            return PhotoPickerModal(
-              mediaQuery: mediaQuery,
-              onSelectImages: (images) async {
-                final image = images.first;
-                setState(() {
-                  selectImage = image;
-                });
-              },
-            );
-          },
-        );
+    showPhotoPickerModal(
+      context,
+      onSelectedImages: (images) {
+        setState(() {
+          selectImage = images.first;
+        });
       },
     );
   }
@@ -78,7 +65,12 @@ class _MyHomePageState extends State<MyHomePage> {
                       radius: 50,
                       backgroundColor: Colors.black,
                     )
-                  : Image.file(File(selectImage!.path), width: 100, height: 100, fit: BoxFit.cover,),
+                  : Image.file(
+                      File(selectImage!.path),
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                    ),
             )
           ],
         ),
