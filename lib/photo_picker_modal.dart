@@ -48,9 +48,10 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
 
   int _currentPage = 0; // 현재 페이지
   final int _pageSize = 30; // 한 번에 로드할 이미지 개수
-  bool _isLoading = false;
 
   final ScrollController _scrollController = ScrollController();
+
+  bool _isRefresh = true;
 
   @override
   void initState() {
@@ -102,14 +103,15 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
 
   // 해당 앨범의 이미지 불러오기
   Future<void> _loadImageList(AssetPathEntity album, {bool albumChanged = false}) async {
-    if(_isLoading) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
     if(albumChanged) {
+      _isRefresh = true;
       _currentPage = 0;
+    } else {
+      // 앨범 변경을 안한 경우는 스크롤을 내려서 불러오는 경우
+      final totalImagesCount = await album.assetCountAsync;
+      if(_imageList.length == totalImagesCount) {
+        return;
+      }
     }
 
     final assets = await album.getAssetListPaged(page: _currentPage, size: _pageSize);
@@ -127,8 +129,8 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
         _imageList.addAll(assets);
         _imageCache.addAll(newCache);
       }
-      _isLoading = false;
       _currentPage++;
+      _isRefresh = false;
     });
   }
 
@@ -192,7 +194,7 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
             onClose: () => Navigator.of(context).pop(),
           ),
           Expanded(
-            child: _PhotoGridView(
+            child: _isRefresh ? Center(child: CircularProgressIndicator()) : _PhotoGridView(
               imageList: _imageList,
               selectedImageList: _selectedImageList,
               imageCache: _imageCache,
