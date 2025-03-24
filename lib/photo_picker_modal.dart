@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_photo_select_example/permission_utils.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 class PhotoPickerModal extends StatefulWidget {
   final MediaQueryData mediaQuery;
   final bool multiSelect;
-  final Function(List<AssetEntity>) onSelectImages;
+  final Function(List<XFile>) onSelectImages;
 
   const PhotoPickerModal(
       {super.key,
@@ -126,8 +127,15 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
   }
 
 
-  void _onComplete() {
-    widget.onSelectImages.call(_selectedImageList);
+  void _onComplete() async {
+    List<XFile> imageFiles = [];
+    for(var image in _selectedImageList) {
+      final file = await image.file;
+      if(file != null) {
+        imageFiles.add(XFile(file.path));
+      }
+    }
+    widget.onSelectImages.call(imageFiles);
     Navigator.of(context).pop();
   }
 
