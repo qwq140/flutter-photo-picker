@@ -126,6 +126,15 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
     }
   }
 
+  void _onCameraTap() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+
+    if (pickedFile != null) {
+      widget.onSelectImages.call([pickedFile]);
+      Navigator.of(context).pop();
+    }
+  }
 
   void _onComplete() async {
     List<XFile> imageFiles = [];
@@ -169,6 +178,7 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
               imageCache: _imageCache,
               scrollController: _scrollController,
               onImageTap: _onImageTap,
+              onCameraTap: _onCameraTap,
             ),
           ),
         ],
@@ -232,6 +242,8 @@ class _PhotoGridView extends StatelessWidget {
   final Map<AssetEntity, Uint8List?> imageCache;
   final ScrollController scrollController;
   final Function(AssetEntity) onImageTap;
+  final VoidCallback onCameraTap;
+
   const _PhotoGridView({
     super.key,
     required this.imageList,
@@ -239,6 +251,7 @@ class _PhotoGridView extends StatelessWidget {
     required this.imageCache,
     required this.scrollController,
     required this.onImageTap,
+    required this.onCameraTap,
   });
 
   @override
@@ -251,9 +264,16 @@ class _PhotoGridView extends StatelessWidget {
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
       ),
-      itemCount: imageList.length,
+      itemCount: imageList.length + 1,
       itemBuilder: (context, index) {
-        final image = imageList[index];
+        if(index == 0) {
+          return GestureDetector(
+            onTap: () => onCameraTap.call(),
+            child: Icon(Icons.camera_alt),
+          );
+        }
+
+        final image = imageList[index - 1];
         final isSelected = selectedImageList.contains(image);
         final imageData = imageCache[image];
 
