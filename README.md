@@ -6,6 +6,7 @@
 2. photo_manager_image_provider: ^2.2.0 : https://pub.dev/packages/photo_manager_image_provider
 3. permission_handler: ^11.4.0 : https://pub.dev/packages/permission_handler
 4. device_info_plus: ^11.3.0 : https://pub.dev/packages/device_info_plus
+5. image_picker: ^1.1.2 : https://pub.dev/packages/image_picker
 
 
 ## 📌 기능
