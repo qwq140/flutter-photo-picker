@@ -219,9 +219,9 @@ abstract class PermissionUtils {
 
 ## 🖼️ 화면 구현
 ### 사진 선택 화면
-<img src="screenshots/screenshot1.png" width="800" />
-<img src="screenshots/screenshot2.png" width="800" />
-<img src="screenshots/screenshot3.png" width="800" />
+<img src="screenshots/screenshot1.png" width="400" />
+<img src="screenshots/screenshot2.png" width="400" />
+<img src="screenshots/screenshot3.png" width="400" />
 
 ### 선택한 사진 처리 화면
-<img src="screenshots/screenshot4.png" width="800" />
+<img src="screenshots/screenshot4.png" width="400" />
