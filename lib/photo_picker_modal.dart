@@ -91,7 +91,9 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
 
   // 권한 체크
   Future<bool> _checkPermission() async {
-    return await PermissionUtils.checkGalleryPermission(context, mounted);
+    bool isCameraGranted = await PermissionUtils.checkCameraPermission(context, mounted);
+    bool isGalleryGranted =  await PermissionUtils.checkGalleryPermission(context, mounted);
+    return isCameraGranted && isGalleryGranted;
   }
 
   // 앨범 목록 불러오기
