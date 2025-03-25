@@ -1,14 +1,20 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_photo_select_example/permission_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
-void showPhotoPickerModal(BuildContext context, {bool multiSelect = false, required Function(List<XFile>) onSelectedImages}) {
+void showPhotoPickerModal(BuildContext context,
+    {bool multiSelect = false,
+    required Function(List<File>) onSelectedImages}) {
   final mediaQuery = MediaQuery.of(context);
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    backgroundColor: Colors.white,
     builder: (context) {
       return DraggableScrollableSheet(
         initialChildSize: 1,
@@ -27,7 +33,7 @@ void showPhotoPickerModal(BuildContext context, {bool multiSelect = false, requi
 class PhotoPickerModal extends StatefulWidget {
   final MediaQueryData mediaQuery;
   final bool multiSelect;
-  final Function(List<XFile>) onSelectImages;
+  final Function(List<File>) onSelectImages;
 
   const PhotoPickerModal(
       {super.key,
@@ -44,7 +50,6 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
   List<AssetEntity> _selectedImageList = [];
   List<AssetPathEntity> _albumList = [];
   AssetPathEntity? _selectedAlbum;
-  Map<AssetEntity, Uint8List?> _imageCache = {};
 
   int _currentPage = 0; // 현재 페이지
   final int _pageSize = 30; // 한 번에 로드할 이미지 개수
@@ -77,8 +82,9 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
   }
 
   void _scrollListener() {
-    if(_scrollController.position.pixels == _scrollController.position.maxScrollExtent) {
-      if(_selectedAlbum == null) return;
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent) {
+      if (_selectedAlbum == null) return;
       _loadImageList(_selectedAlbum!);
     }
   }
@@ -90,7 +96,8 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
 
   // 앨범 목록 불러오기
   Future<void> _loadAlbumList() async {
-    final fetchedAlbumList = await PhotoManager.getAssetPathList(type: RequestType.image);
+    final fetchedAlbumList =
+        await PhotoManager.getAssetPathList(type: RequestType.image);
 
     if (fetchedAlbumList.isEmpty) return;
 
@@ -102,32 +109,27 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
   }
 
   // 해당 앨범의 이미지 불러오기
-  Future<void> _loadImageList(AssetPathEntity album, {bool albumChanged = false}) async {
-    if(albumChanged) {
+  Future<void> _loadImageList(AssetPathEntity album,
+      {bool albumChanged = false}) async {
+    if (albumChanged) {
       _isRefresh = true;
       _currentPage = 0;
     } else {
       // 앨범 변경을 안한 경우는 스크롤을 내려서 불러오는 경우
       final totalImagesCount = await album.assetCountAsync;
-      if(_imageList.length == totalImagesCount) {
+      if (_imageList.length == totalImagesCount) {
         return;
       }
     }
 
-    final assets = await album.getAssetListPaged(page: _currentPage, size: _pageSize);
-    final Map<AssetEntity, Uint8List?> newCache = {};
-
-    for (var asset in assets) {
-      newCache[asset] = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
-    }
+    final assets =
+        await album.getAssetListPaged(page: _currentPage, size: _pageSize);
 
     setState(() {
-      if(albumChanged) {
+      if (albumChanged) {
         _imageList = assets;
-        _imageCache = newCache;
       } else {
         _imageList.addAll(assets);
-        _imageCache.addAll(newCache);
       }
       _currentPage++;
       _isRefresh = false;
@@ -143,7 +145,9 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
       });
     } else {
       setState(() {
-        _selectedImageList = [image];
+        _selectedImageList.contains(image)
+            ? _selectedImageList.remove(image)
+            : _selectedImageList = [image];
       });
     }
   }
@@ -153,26 +157,28 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
 
     if (pickedFile != null) {
-      widget.onSelectImages.call([pickedFile]);
+      widget.onSelectImages.call([File(pickedFile.path)]);
       Navigator.of(context).pop();
     }
   }
 
   void _onComplete() async {
-    List<XFile> imageFiles = [];
-    for(var image in _selectedImageList) {
+    List<File> imageFiles = [];
+    for (var image in _selectedImageList) {
       final file = await image.file;
-      if(file != null) {
-        imageFiles.add(XFile(file.path));
+      if (file != null) {
+        imageFiles.add(file);
       }
     }
     widget.onSelectImages.call(imageFiles);
+
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return Container(
+      color: Colors.white,
       padding: EdgeInsets.only(
         top: widget.mediaQuery.padding.top,
         bottom: widget.mediaQuery.padding.bottom,
@@ -194,14 +200,15 @@ class _PhotoPickerModalState extends State<PhotoPickerModal> {
             onClose: () => Navigator.of(context).pop(),
           ),
           Expanded(
-            child: _isRefresh ? Center(child: CircularProgressIndicator()) : _PhotoGridView(
-              imageList: _imageList,
-              selectedImageList: _selectedImageList,
-              imageCache: _imageCache,
-              scrollController: _scrollController,
-              onImageTap: _onImageTap,
-              onCameraTap: _onCameraTap,
-            ),
+            child: _isRefresh
+                ? Center(child: CircularProgressIndicator())
+                : _PhotoGridView(
+                    imageList: _imageList,
+                    selectedImageList: _selectedImageList,
+                    scrollController: _scrollController,
+                    onImageTap: _onImageTap,
+                    onCameraTap: _onCameraTap,
+                  ),
           ),
         ],
       ),
@@ -227,31 +234,41 @@ class _AppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Stack(
       children: [
-        IconButton(
-          onPressed: onClose,
-          icon: Icon(Icons.close),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              onPressed: onClose,
+              icon: const Icon(Icons.close, size: 24),
+            ),
+            TextButton(
+              onPressed: onComplete,
+              child: Text('완료'),
+            ),
+          ],
         ),
-        Spacer(),
-        Container(
-          child: albumList.isNotEmpty
-              ? DropdownButton(
-                  value: selectedAlbum,
-                  items: albumList.map((album) {
-                    return DropdownMenuItem(
-                      value: album,
-                      child: Text(album.isAll ? '모든 사진' : album.name),
-                    );
-                  }).toList(),
-                  onChanged: onAlbumChanged,
-                )
-              : const SizedBox(),
-        ),
-        Spacer(),
-        TextButton(
-          onPressed: onComplete,
-          child: Text('완료'),
+        Align(
+          alignment: Alignment.center,
+          child: Container(
+            child: albumList.isNotEmpty
+                ? DropdownButton(
+                    value: selectedAlbum,
+                    dropdownColor: Colors.white,
+                    items: albumList.map((album) {
+                      return DropdownMenuItem(
+                        value: album,
+                        child: Text(
+                          album.isAll ? '최근항목' : album.name,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: onAlbumChanged,
+                    underline: const SizedBox.shrink(),
+                  )
+                : const SizedBox(),
+          ),
         ),
       ],
     );
@@ -261,7 +278,6 @@ class _AppBar extends StatelessWidget {
 class _PhotoGridView extends StatelessWidget {
   final List<AssetEntity> imageList;
   final List<AssetEntity> selectedImageList;
-  final Map<AssetEntity, Uint8List?> imageCache;
   final ScrollController scrollController;
   final Function(AssetEntity) onImageTap;
   final VoidCallback onCameraTap;
@@ -270,7 +286,6 @@ class _PhotoGridView extends StatelessWidget {
     super.key,
     required this.imageList,
     required this.selectedImageList,
-    required this.imageCache,
     required this.scrollController,
     required this.onImageTap,
     required this.onCameraTap,
@@ -279,52 +294,73 @@ class _PhotoGridView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(8.5),
       controller: scrollController,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 4,
-        mainAxisSpacing: 4,
+        crossAxisSpacing: 2,
+        mainAxisSpacing: 2,
       ),
       itemCount: imageList.length + 1,
       itemBuilder: (context, index) {
-        if(index == 0) {
+        if (index == 0) {
           return GestureDetector(
             onTap: () => onCameraTap.call(),
-            child: Icon(Icons.camera_alt),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.grey,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.camera_alt),
+                    Text('촬영하기')
+                  ],
+                ),
+              ),
+            ),
           );
         }
 
         final image = imageList[index - 1];
         final isSelected = selectedImageList.contains(image);
-        final imageData = imageCache[image];
 
         return GestureDetector(
-          onTap: imageData != null ? () => onImageTap(image) : null,
+          onTap: () => onImageTap(image),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (imageData == null)
-                const Center(child: Icon(Icons.image_not_supported, size: 40))
-              else
-                Image.memory(imageData, fit: BoxFit.cover),
-              if (imageData != null)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                      color: isSelected ? Colors.blue : Colors.transparent,
-                    ),
-                    child: isSelected
-                        ? const Icon(Icons.check, color: Colors.white, size: 16)
-                        : null,
-                  ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AssetEntityImage(
+                  image,
+                  isOriginal: false,
+                  thumbnailSize: const ThumbnailSize.square(200),
+                  fit: BoxFit.cover,
                 ),
+              ),
+              if (isSelected)
+                Container(
+                  decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber, width: 3)),
+                ),
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Checkbox(
+                  value: isSelected,
+                  onChanged: (value) {},
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)
+                  ),
+                  checkColor: Colors.white,
+                  activeColor: Colors.amber,
+                ),
+              ),
             ],
           ),
         );
